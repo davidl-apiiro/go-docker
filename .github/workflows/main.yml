@@ -1,9 +1,8 @@
 name: Docker Build and Apiiro Scan
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
+
 
 jobs:
   docker-build:
