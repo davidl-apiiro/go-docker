@@ -27,7 +27,7 @@ jobs:
     # Apiiro API Build Scan
     - name: Apiiro API Build Scan
       run: |
-        return_string=$(curl  -s --location 'https://app-staging.apiiro.com/rest-api/v2/buildScan/builds' \
+        return_string=$(curl  -s --location 'https://app-staging.apiiro.com/rest-api/v1/buildScan/builds' \
               --header 'Content-Type: application/json' \
               --header 'Authorization: Bearer ${{ secrets.BEARER_TOKEN }}' \
               --data '
@@ -46,7 +46,7 @@ jobs:
     - name: Apiiro API Results Scan
       run: |
        while true; do
-            response=$(curl -sS --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET 'https://app-staging.apiiro.com/rest-api/v1/buildScan/${{ env.RETURN_STRING }}/results' \
+            response=$(curl -sS --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET 'https://app-staging.apiiro.com/rest-api/v2/buildScan/${{ env.RETURN_STRING }}/results' \
             --header 'Content-Type: application/json' \
             --header 'Authorization: Bearer ${{ secrets.BEARER_TOKEN }}')
         
