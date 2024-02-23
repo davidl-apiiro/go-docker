@@ -48,57 +48,39 @@ jobs:
         current_retry=0
     
         while true; do
-            # Use curl with -w to capture HTTP status code
-            http_status=$(curl -sS -w "%{http_code}" --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET "https://app-staging.apiiro.com/rest-api/v2/buildScan/${{ env.RETURN_STRING }}/results" \
+            # Save the output and HTTP status in separate variables
+            response=$(curl -sS -w "%{http_code}" --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET "https://app-staging.apiiro.com/rest-api/v2/buildScan/${{ env.RETURN_STRING }}/results" \
             --header 'Content-Type: application/json' \
-            --header 'Authorization: Bearer ${{ secrets.BEARER_TOKEN }}' \
-            -o response.json)
+            --header 'Authorization: Bearer ${{ secrets.BEARER_TOKEN }}' -o temp_response.json)
+            http_status=$(tail -n1 temp_response.json) # Get the last line where http status is stored
+            response=$(sed '$ d' temp_response.json) # Remove the last line containing the HTTP status
     
-            # Check HTTP status code
-            if [[ "$http_status" != "200" ]]; then
-                echo "Request failed with status $http_status."
-                if [[ "$http_status" == "503" ]]; then
-                    echo "Service unavailable. Retrying..."
+            if [ "$http_status" -ne 200 ]; then
+                echo "Request failed with HTTP status $http_status"
+                if [ "$http_status" -eq 503 ]; then
+                    echo "Service unavailable. Retrying in 5 seconds..."
+                    sleep 5
                 else
-                    cat response.json
-                    exit 1 # Exit if the error is not a 503
+                    echo "Response: $response"
+                    exit 1
                 fi
-            fi
-    
-            # Read response into a variable and delete the temp file
-            response=$(<response.json)
-            rm response.json
-    
-            # Increment retry counter
-            ((current_retry++))
-    
-            # Check if the response is valid JSON
-            if ! echo "$response" | jq empty 2>/dev/null; then
-                echo "Received an invalid JSON response. Waiting before the next check..."
-                sleep 5
             else
-                # Extract 'buildPassed' status
+                # Parse the response with jq
                 buildPassed=$(echo "$response" | jq '.buildPassed')
-    
                 if [[ "$buildPassed" == "true" ]]; then
                     echo "Pipeline can continue. Apiiro scan passed."
-                    echo "API Response Summary:"
-                    echo "$response" | jq -r '.summary'
-                    echo "API Scan Results:"
-                    echo "$response" | jq -r '.scanResults[]'
                     exit 0
-                elif [[ "$buildPassed" == "false" ]]; then
-                    echo "Pipeline cannot continue. Apiiro scan failed."
-                    exit 1
                 else
-                    echo "Unexpected JSON format or missing 'buildPassed' key. Response was: $response"
-                    sleep 5
+                    echo "Pipeline cannot continue. Apiiro scan indicated failure or was inconclusive."
+                    exit 1
                 fi
             fi
     
-            # Break if max retries reached
+            ((current_retry++))
             if [[ $current_retry -ge $max_retries ]]; then
-                echo "Max retries reached without a conclusive result. Exiting."
+                echo "Max retries reached. Exiting."
                 exit 1
             fi
         done
+        rm temp_response.json # Clean up
+    
