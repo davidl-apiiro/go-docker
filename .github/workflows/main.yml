@@ -33,7 +33,7 @@ jobs:
               --data '
               {
               "commitSha": "${{ github.sha }}",
-              "repositoryUrl": "${{GITHUB_SERVER_URL}}/{{$GITHUB_REPOSITORY }}",
+              "repositoryUrl": "${{ github.server_url }}/${{ github.repository }}",
               "buildId": "${{ github.run_id }}"
               }')
         echo "$return_string"
