@@ -59,11 +59,11 @@ jobs:
                 # Check if the response is valid JSON
                 if ! echo "$response" | jq empty 2>/dev/null; then
                     echo "Received an invalid JSON response. Waiting before the next check..."
-                    sleep 5
+                    sleep 10
                 # Directly check for '503' in the response body
                 elif echo "$response" | grep -q "503"; then
                     echo "Scan is still in progress. Waiting for the next check..."
-                    sleep 5
+                    sleep 10
                 else
                     # Handle successful response here
 
