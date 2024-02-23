@@ -45,7 +45,7 @@ jobs:
     # Apiiro API Results Scan
     - name: Apiiro API Results Scan
       run: |
-            max_retries=20
+            max_retries=50
             current_retry=0
 
             while true; do
