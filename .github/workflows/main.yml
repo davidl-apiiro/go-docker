@@ -45,8 +45,8 @@ jobs:
     # Apiiro API Results Scan
     - name: Apiiro API Results Scan
       run: |
-            max_retries=50
-            current_retry=0
+            # max_retries=50
+            # current_retry=0
 
             while true; do
                 response=$(curl -sS --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET 'https://app-staging.apiiro.com/rest-api/v2/buildScan/${{ env.RETURN_STRING }}/results' \
@@ -86,8 +86,8 @@ jobs:
                 fi
 
                 # Break if max retries reached
-                if [[ $current_retry -ge $max_retries ]]; then
-                    echo "Max retries reached. Exiting."
-                    exit 1
-                fi
+                # if [[ $current_retry -ge $max_retries ]]; then
+                #     echo "Max retries reached. Exiting."
+                #     exit 1
+                # fi
             done
