@@ -53,31 +53,32 @@ jobs:
             response=$(curl -sS --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET "https://app-staging.apiiro.com/rest-api/v2/buildScan/${{ env.RETURN_STRING }}/results" \
             --header 'Content-Type: application/json' \
             --header 'Authorization: Bearer ${{ secrets.BEARER_TOKEN }}')
-            
-            http_status=$(echo $?)
-            if [[ "$http_status" -ne 0 ]]; then
-                echo "Curl command failed with status: $http_status"
-                exit 1
-            fi
     
             # Check if the response is valid JSON
-            if echo "$response" | jq empty 2>&1; then
-                echo "Valid JSON response received."
-            else
+            if ! echo "$response" | jq empty 2>/dev/null; then
                 echo "Received an invalid JSON response. Waiting before the next check..."
                 sleep 5
-            fi
-            
-            echo "Analyzing response..."
-            buildPassed=$(echo "$response" | jq -r '.buildPassed')
-            if [[ "$buildPassed" == "null" || "$buildPassed" == "" ]]; then
-                echo "Unable to determine 'buildPassed' status. Checking retry condition..."
-            elif [[ "$buildPassed" == "true" ]]; then
-                echo "Pipeline can continue. Apiiro scan passed."
-                exit 0
             else
-                echo "Unexpected JSON format, missing 'buildPassed' key, or Apiiro scan indicated failure."
-                exit 1
+                echo "API Response Summary:"
+                echo "$response" | jq -r '.summary'
+                echo "---------------------"
+                echo "API Scan Results:"
+                # Ensure there are scan results to show, otherwise skip this part
+                if echo "$response" | jq -e '.scanResults' >/dev/null 2>&1; then
+                    echo "$response" | jq -r '.scanResults[]'
+                else
+                    echo "No scan results available."
+                fi
+                echo "---------------------"
+                
+                # Check buildPassed status using grep
+                if echo "$response" | jq -e '.buildPassed' 2>/dev/null | grep -q "true"; then
+                    echo "Pipeline can continue. Apiiro scan passed."
+                    exit 0
+                else
+                    echo "Unexpected JSON format or missing 'buildPassed' key."
+                    exit 1
+                fi
             fi
     
             ((current_retry++))
