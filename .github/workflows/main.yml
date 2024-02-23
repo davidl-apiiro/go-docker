@@ -48,9 +48,26 @@ jobs:
         current_retry=0
     
         while true; do
-            response=$(curl -sS --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET "https://app-staging.apiiro.com/rest-api/v2/buildScan/${{ env.RETURN_STRING }}/results" \
+            # Use curl with -w to capture HTTP status code
+            http_status=$(curl -sS -w "%{http_code}" --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET "https://app-staging.apiiro.com/rest-api/v2/buildScan/${{ env.RETURN_STRING }}/results" \
             --header 'Content-Type: application/json' \
-            --header 'Authorization: Bearer ${{ secrets.BEARER_TOKEN }}')
+            --header 'Authorization: Bearer ${{ secrets.BEARER_TOKEN }}' \
+            -o response.json)
+    
+            # Check HTTP status code
+            if [[ "$http_status" != "200" ]]; then
+                echo "Request failed with status $http_status."
+                if [[ "$http_status" == "503" ]]; then
+                    echo "Service unavailable. Retrying..."
+                else
+                    cat response.json
+                    exit 1 # Exit if the error is not a 503
+                fi
+            fi
+    
+            # Read response into a variable and delete the temp file
+            response=$(<response.json)
+            rm response.json
     
             # Increment retry counter
             ((current_retry++))
@@ -60,22 +77,21 @@ jobs:
                 echo "Received an invalid JSON response. Waiting before the next check..."
                 sleep 5
             else
-                # Check for 'buildPassed' status in the JSON response
+                # Extract 'buildPassed' status
                 buildPassed=$(echo "$response" | jq '.buildPassed')
     
-                if [ "$buildPassed" == "true" ]; then
+                if [[ "$buildPassed" == "true" ]]; then
                     echo "Pipeline can continue. Apiiro scan passed."
                     echo "API Response Summary:"
                     echo "$response" | jq -r '.summary'
-                    echo "---------------------"
                     echo "API Scan Results:"
                     echo "$response" | jq -r '.scanResults[]'
                     exit 0
-                elif [ "$buildPassed" == "false" ]; then
+                elif [[ "$buildPassed" == "false" ]]; then
                     echo "Pipeline cannot continue. Apiiro scan failed."
                     exit 1
                 else
-                    echo "Unexpected JSON format or missing 'buildPassed' key."
+                    echo "Unexpected JSON format or missing 'buildPassed' key. Response was: $response"
                     sleep 5
                 fi
             fi
