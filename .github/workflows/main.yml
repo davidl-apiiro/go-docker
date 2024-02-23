@@ -49,7 +49,7 @@ jobs:
             current_retry=0
 
             while true; do
-                response=$(curl -sS --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET 'https://app-staging.apiiro.com/rest-api/v2/buildScan/$(return_string)/results' \
+                response=$(curl -sS --insecure --retry 15 --retry-max-time 900 --retry-delay 45 --location --request GET 'https://app-staging.apiiro.com/rest-api/v1/buildScan/$(return_string)/results' \
                 --header 'Content-Type: application/json' \
                 --header 'Authorization: Bearer $(bearer)')
                 
