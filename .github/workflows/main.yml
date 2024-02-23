@@ -33,7 +33,7 @@ jobs:
               --data '
               {
               "commitSha": "${{ github.sha }}",
-              "repositoryUrl": "https://github.com/davidl-apiiro/go-docker",
+              "repositoryUrl": "${{GITHUB_SERVER_URL}}/{{$GITHUB_REPOSITORY }}",
               "buildId": "${{ github.run_id }}"
               }')
         echo "$return_string"
