@@ -3,7 +3,6 @@ name: Docker Build and Apiiro Scan
 on:
   workflow_dispatch:
 
-
 jobs:
   docker-build:
     name: Docker Build
@@ -64,10 +63,10 @@ jobs:
                 echo "---------------------"
                 echo "API Scan Results:"
                 # Ensure there are scan results to show, otherwise skip this part
-                if echo "$response" | jq -e '.scanResults' >/dev/null 2>&1; then
+                if [ "$(echo "$response" | jq '.scanResults | type')" = "array" ]; then
                     echo "$response" | jq -r '.scanResults[]'
                 else
-                    echo "No scan results available."
+                    echo "No scan results available or 'scanResults' is not an array."
                 fi
                 echo "---------------------"
                 
